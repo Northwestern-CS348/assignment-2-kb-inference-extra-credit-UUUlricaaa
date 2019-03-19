@@ -22,10 +22,8 @@ class KnowledgeBase(object):
     def _get_fact(self, fact):
         """INTERNAL USE ONLY
         Get the fact in the KB that is the same as the fact argument
-
         Args:
             fact (Fact): Fact we're searching for
-
         Returns:
             Fact: matching fact
         """
@@ -36,10 +34,8 @@ class KnowledgeBase(object):
     def _get_rule(self, rule):
         """INTERNAL USE ONLY
         Get the rule in the KB that is the same as the rule argument
-
         Args:
             rule (Rule): Rule we're searching for
-
         Returns:
             Rule: matching rule
         """
@@ -84,7 +80,6 @@ class KnowledgeBase(object):
 
     def kb_assert(self, fact_rule):
         """Assert a fact or rule into the KB
-
         Args:
             fact_rule (Fact or Rule): Fact or Rule we're asserting
         """
@@ -93,10 +88,8 @@ class KnowledgeBase(object):
 
     def kb_ask(self, fact):
         """Ask if a fact is in the KB
-
         Args:
             fact (Fact) - Statement to be asked (will be converted into a Fact)
-
         Returns:
             listof Bindings|False - list of Bindings if result found, False otherwise
         """
@@ -118,10 +111,8 @@ class KnowledgeBase(object):
 
     def kb_retract(self, fact_or_rule):
         """Retract a fact from the KB
-
         Args:
             fact (Fact) - Fact to be retracted
-
         Returns:
             None
         """
@@ -133,103 +124,97 @@ class KnowledgeBase(object):
     def kb_explain(self, fact_or_rule):
         """
         Explain where the fact or rule comes from
-
         Args:
             fact_or_rule (Fact or Rule) - Fact or rule to be explained
-
         Returns:
             string explaining hierarchical support from other Facts and rules
         """
         ####################################################
         # Student code goes here
+        output = ''
+        blanks = 1
+        if (not isinstance(fact_or_rule, Fact)) and (not isinstance(fact_or_rule, Rule)):
+            return False
 
-        s = ''
-        if isinstance(fact_or_rule,Fact):
+        elif isinstance(fact_or_rule, Fact):
             if fact_or_rule not in self.facts:
-                return "Fact is not in the KB"
-            else:
-                fact = self._get_fact(fact_or_rule)
-                s = "fact: " + str(fact_or_rule.statement)
-                if not fact.asserted:
-                    s += self.explain_help(fact, 0, 2)
+                return 'Fact is not in the KB'
+
+            else: 
+                
+                output += self.explain_helper(fact_or_rule, '', 1)
+        
         elif isinstance(fact_or_rule, Rule):
             if fact_or_rule not in self.rules:
-                return "Rule is not in the KB"
+                return 'Rule is not in the KB'
+
             else:
-                rule = self._get_rule(fact_or_rule)
-                if not rule.asserted:
-                    s += self.explain_help(rule, 1, 2)
-        print(s)
-        return s
+                
+                output += self.explain_helper(fact_or_rule, '', 1)
+        print(output)
+        return output
 
+    def explain_helper(self, fact_or_rule, output, blanks):
+        space = '  '
 
-    def explain_help(self,fact_or_rule,f_o_r,num):
-        # if fact
-        space = " "
-        string = ''
-        if f_o_r == 0:
-            fact = self._get_fact(fact_or_rule)
-            for x in fact.supported_by:
-                if x[0].asserted:
-                    a = 'ASSERTED'
-                else:
-                    a = ''
-                if x[1].asserted:
-                    b = 'ASSERTED'
-                else:
-                    b = ''
-                s = num * space
-                string = string+'\n' + s + "SUPPORTED BY" +"\n"+s+"  "+"fact: "+str(x[0].statement)+ " "+a
-                if x[0].supported_by != []:
-                    string += self.explain_help(x[0], 0, num+4)
-                string = string + "\n  " + s + "rule: ("
-                for t in range(len(x[1].lhs)):
-                    string = string + str(x[1].lhs[t])
-                    if t != len(x[1].lhs)-1:
-                        string = string+ ", "
-                string = string + ") -> " + str(x[1].rhs) + " " + b
-                if x[1].supported_by != []:
-                    string += self.explain_help(x[1], 1, num+4)
+        if isinstance(fact_or_rule, Fact):
+            fact = self.facts[self.facts.index(fact_or_rule)]
+            output += 'fact: %s' %(str(fact.statement))
+            
+            if fact.asserted:
+                output += ' ASSERTED'
+            
 
+            if fact.supported_by:
+                for supports in fact.supported_by:
+                    output += '\n' + space * blanks + 'SUPPORTED BY\n'
+                    i = 1
+                    for f in supports:
+                        output += space * (blanks + 1)
+                        output += self.explain_helper(f, '', blanks + 2)
+                        
+                        if i == 1:
+                            output += '\n'
+                        i += 1
+        else: 
+            rule = self.rules[self.rules.index(fact_or_rule)]
 
-       # if rule
-        elif f_o_r == 1:
-            rule = self._get_rule(fact_or_rule)
-            for x in rule.supported_by:
-                if x[0].asserted:
-                    a = 'ASSERTED'
-                else:
-                    a = ''
-                if x[1].asserted:
-                    b = 'ASSERTED'
-                else:
-                    b = ' '
+            output += 'rule: ('
+            i = 1
+            for lhs_statement in rule.lhs: 
+                output += str(lhs_statement)
+                if i < len(rule.lhs):
+                    output += ', '
+                i += 1
 
-                s = num * space
-                string += "\n"+s +"SUPPORTED BY" + "\n" + s + "  " + "fact: " + str(x[0].statement) + ' '+str(a)
-                if x[0].supported_by != []:
-                    string += self.explain_help(x[0], 0, num+4)
-                string = string + "\n  " + s + "rule: ("
-                for t in range(len(x[1].lhs)):
-                    string = string + str(x[1].lhs[t])
-                    if t != len(x[1].lhs)-1:
-                        string = string + ", "
-                string = string + ") -> " + str(x[1].rhs) + " "+b
+            output += ') -> '
+            output += str(rule.rhs)
 
-                if not x[1].asserted:
-                    string += self.explain_help(x[1], 1, num+4)
-        return string
+            if rule.asserted:
+                output += ' ASSERTED'
+            
+
+            if rule.supported_by:
+                for supports in rule.supported_by:
+                    output += '\n' + space * blanks + 'SUPPORTED BY\n'
+                    i = 1
+                    for r in supports:
+                        output += space * (blanks + 1)
+                        output += self.explain_helper(r, '', blanks + 2)
+                        
+                        if i == 1:
+                            output += '\n'
+                        i += 1
+        return output
 
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
         """Forward-chaining to infer new facts and rules
-
         Args:
             fact (Fact) - A fact from the KnowledgeBase
             rule (Rule) - A rule from the KnowledgeBase
             kb (KnowledgeBase) - A KnowledgeBase
-
         Returns:
             Nothing            
         """
